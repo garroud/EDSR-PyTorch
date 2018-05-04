@@ -5,7 +5,7 @@ import torch.nn as nn
 def make_model(args, parent=False):
     return EDSR(args)
 
-class EDSR(nn.Module):
+class EDSR_Q(nn.Module):
     def __init__(self, args, conv=common.default_conv):
         super(EDSR, self).__init__()
 
@@ -46,8 +46,8 @@ class EDSR(nn.Module):
         self.head = nn.Sequential(*m_head)
         self.body = nn.Sequential(*m_body)
         self.tail = nn.Sequential(*m_tail)
-        # self.process_q = nn.Sequential(*m_process_q)
-        # self.corr= Correlation(pad_size=window_size, kernel_size=1, max_displacement=window_size, stride1=1, stride2=1, corr_multiply=1)
+        self.process_q = nn.Sequential(*m_process_q)
+        self.corr= Correlation(pad_size=window_size, kernel_size=1, max_displacement=window_size, stride1=1, stride2=1, corr_multiply=1)
     def forward(self, x):
         x = self.sub_mean(x)
         x = self.head(x)
@@ -56,9 +56,32 @@ class EDSR(nn.Module):
         res += x
 
         x = self.tail(res)
+        y = self.process_q(x)
+        y = self.corr(y,y)
+        y = self.build_q(y)
         x = self.add_mean(x)
+        return x,y
 
-        return x
+    #construct the Q matrix based on correlation map
+    def build_q(self,x):
+        x_shape = x.shape
+        batch = x_shape[0]
+        channel = x_shape[1]
+        height = x_shape[2]
+        width = x_shape[3]
+        build = torch.zeros(b,1,h*w,h*w)
+        # shift = range(c) - window_size
+        for b in range(batch):
+            for c in range(channel):
+                shift_x = c // (2*window_size+1) -window_size;
+                shift_y = c % (2*window_size+1) - window_size;
+                for h in range(height):
+                    for w in range(width):
+                        corr_x = x + shift_x
+                        corr_y = y + shift_y
+                        if corr_x >=0 and corr_y >=0 and corr_x < width and corr_y < height:
+                            build[b,:,w+h*height,corr_x + corr_y * height] = x[b,c,h,w]
+        return build
 
     def load_state_dict(self, state_dict, strict=True):
         own_state = self.state_dict()

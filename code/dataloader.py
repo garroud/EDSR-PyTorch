@@ -1,6 +1,6 @@
 import sys
 import threading
-import queue
+#import queue
 import random
 import collections
 
@@ -20,7 +20,7 @@ from torch.utils.data.dataloader import default_collate
 from torch.utils.data.dataloader import pin_memory_batch
 from torch.utils.data.dataloader import _SIGCHLD_handler_set
 from torch.utils.data.dataloader import _set_SIGCHLD_handler
-
+print (sys.version_info[0])
 if sys.version_info[0] == 2:
     import Queue as queue
 else:
