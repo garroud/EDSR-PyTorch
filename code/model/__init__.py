@@ -4,7 +4,7 @@ from importlib import import_module
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
-
+import math
 class Model(nn.Module):
     def __init__(self, args, ckp):
         super(Model, self).__init__()
@@ -26,6 +26,16 @@ class Model(nn.Module):
 
         if not args.cpu and args.n_GPUs > 1:
             self.model = nn.DataParallel(self.model, range(args.n_GPUs))
+        ##initial our model
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
+            elif isinstance(m, nn.Linear):
+                m.bias.data.zero_()
 
         self.load(
             ckp.dir,
@@ -33,6 +43,7 @@ class Model(nn.Module):
             resume=args.resume,
             cpu=args.cpu
         )
+
         if args.print_model: print(self.model)
 
     def forward(self, x, idx_scale):
@@ -66,7 +77,7 @@ class Model(nn.Module):
     def save(self, apath, epoch, is_best=False):
         target = self.get_model()
         torch.save(
-            target.state_dict(), 
+            target.state_dict(),
             os.path.join(apath, 'model', 'model_latest.pt')
         )
         if is_best:
@@ -74,7 +85,7 @@ class Model(nn.Module):
                 target.state_dict(),
                 os.path.join(apath, 'model', 'model_best.pt')
             )
-        
+
         if self.save_models:
             torch.save(
                 target.state_dict(),
@@ -127,7 +138,10 @@ class Model(nn.Module):
             sr_list = []
             for i in range(0, 4, n_GPUs):
                 lr_batch = torch.cat(lr_list[i:(i + n_GPUs)], dim=0)
-                sr_batch = self.model(lr_batch)
+                if args.model.lower() == 'edsr_q':
+                    sr_batch, Q = self.model(lr_batch)
+                else:
+                    sr_batch = self.model(lr_batch)
                 sr_list.extend(sr_batch.chunk(n_GPUs, dim=0))
         else:
             sr_list = [
@@ -186,4 +200,3 @@ class Model(nn.Module):
         output = output_cat.mean(dim=0, keepdim=True)
 
         return output
-

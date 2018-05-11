@@ -1,5 +1,5 @@
 # EDSR-PyTorch
-![](/figs/main.png)
+#![](/figs/main.png)
 
 This repository is an official PyTorch implementation of the paper **"Enhanced Deep Residual Networks for Single Image Super-Resolution"** from **CVPRW 2017, 2nd NTIRE**.
 You can find the original code and more information from [here](https://github.com/LimBee/NTIRE2017).

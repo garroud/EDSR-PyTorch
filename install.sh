@@ -1,8 +1,10 @@
 #!/bin/bash
-cd ./code/correlation_package
+cd ./code/model/correlation_package
 ./make.sh
-#cd ../resample2d_package 
-#./make.sh
-#cd ../channelnorm_package 
-#./make.sh
-#cd ..
+cd ../../..
+cd ./code/model/resample2d_package 
+./make.sh
+cd ../../..
+cd ./code/model/channelnorm_package 
+./make.sh
+cd ../../..

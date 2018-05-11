@@ -19,7 +19,7 @@ parser.add_argument('--seed', type=int, default=1,
                     help='random seed')
 
 # Data specifications
-parser.add_argument('--dir_data', type=str, default='../../../dataset',
+parser.add_argument('--dir_data', type=str, default='/home/ruichao/data',
                     help='dataset directory')
 parser.add_argument('--dir_demo', type=str, default='../test',
                     help='demo image directory')
@@ -39,7 +39,7 @@ parser.add_argument('--ext', type=str, default='img',
                     help='dataset file extension')
 parser.add_argument('--scale', default='4',
                     help='super resolution scale')
-parser.add_argument('--patch_size', type=int, default=192,
+parser.add_argument('--patch_size', type=int, default=48,
                     help='output patch size')
 parser.add_argument('--rgb_range', type=int, default=255,
                     help='maximum value of RGB')
@@ -51,9 +51,13 @@ parser.add_argument('--chop', action='store_true',
                     help='enable memory-efficient forward')
 
 # Model specifications
+parser.add_argument('--use_q', type=bool, default=False,
+                    help='whether enable q training')
+parser.add_argument('--window_size', type=int ,default=3,
+                    help='window size of searching')
+
 parser.add_argument('--model', default='EDSR',
                     help='model name')
-
 parser.add_argument('--act', type=str, default='relu',
                     help='activation function')
 parser.add_argument('--pre_train', type=str, default='.',
@@ -114,7 +118,7 @@ parser.add_argument('--weight_decay', type=float, default=0,
                     help='weight decay')
 
 # Loss specifications
-parser.add_argument('--loss', type=str, default='1*L1',
+parser.add_argument('--loss', type=str, default='1*QMSE',
                     help='loss function configuration')
 parser.add_argument('--skip_threshold', type=float, default='1e6',
                     help='skipping batch that has large error')
@@ -130,7 +134,7 @@ parser.add_argument('--print_model', action='store_true',
                     help='print model')
 parser.add_argument('--save_models', action='store_true',
                     help='save all intermediate models')
-parser.add_argument('--print_every', type=int, default=100,
+parser.add_argument('--print_every', type=int, default=1,
                     help='how many batches to wait before logging training status')
 parser.add_argument('--save_results', action='store_true',
                     help='save output results')
@@ -148,4 +152,3 @@ for arg in vars(args):
         vars(args)[arg] = True
     elif vars(args)[arg] == 'False':
         vars(args)[arg] = False
-

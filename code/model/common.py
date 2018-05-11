@@ -5,7 +5,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from torch.autograd import Variable
-from correlation_package.modules.correlation import Correlation
 
 def default_conv(in_channels, out_channels, kernel_size, bias=True):
     return nn.Conv2d(
@@ -78,20 +77,21 @@ class Upsampler(nn.Sequential):
 
 class Process_q(nn.Sequential):
         def __init__(
-            self, in_channels, internal_channels, out_channal,kernel_size, stride=1, bias=true,
-            bn=False, act=nn.ReLU(True)):
-            m = [nn.Conv2d(
-                in_channels, internal_channels, kernel_size,
-                padding=(kernel_size//2), stride=stride, bias=bias)
-            ]
-            if bn: m.append(nn.BatchNorm2d(out_channels))
-            if act is not None: m.append(act)
+            self, in_channels, out_channels,kernel_size, stride=1, bias=True,
+            bn=True, act=nn.LeakyReLU(0.1,True)):
+            if bn: m = [nn.BatchNorm2d(in_channels)]
             m.append(nn.Conv2d(
-                internal_channels, internal_channels, kernel_size,
+                in_channels, in_channels, kernel_size,
                 padding=(kernel_size//2), stride=stride, bias=bias))
-            if bn: m.append(nn.BatchNorm2d(out_channels))
+            # if bn: m.append(nn.BatchNorm2d(in_channels))
             if act is not None: m.append(act)
             m.append(nn.Conv2d(
-                internal_channels, out_channals, 1,
-                padding=(0, stride=stride, bias=bias))
-            super(BasicBlock, self).__init__(*m)
+                in_channels, in_channels, kernel_size,
+                padding=(kernel_size//2), stride=stride, bias=bias))
+            # if bn: m.append(nn.BatchNorm2d(in_channels))
+            if act is not None: m.append(act)
+            m.append(nn.Conv2d(
+                in_channels, out_channels, 1,
+                padding=0, stride=stride, bias=bias))
+
+            super(Process_q, self).__init__(*m)

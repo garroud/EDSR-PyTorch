@@ -12,7 +12,6 @@ class Trainer():
     def __init__(self, args, loader, my_model, my_loss, ckp):
         self.args = args
         self.scale = args.scale
-
         self.ckp = ckp
         self.loader_train = loader.loader_train
         self.loader_test = loader.loader_test
@@ -20,7 +19,7 @@ class Trainer():
         self.loss = my_loss
         self.optimizer = utility.make_optimizer(args, self.model)
         self.scheduler = utility.make_scheduler(args, self.optimizer)
-
+        self.use_q = args.use_q
         if self.args.load != '.':
             self.optimizer.load_state_dict(
                 torch.load(os.path.join(ckp.dir, 'optimizer.pt'))
@@ -48,8 +47,12 @@ class Trainer():
             timer_model.tic()
 
             self.optimizer.zero_grad()
-            sr = self.model(lr, idx_scale)
-            loss = self.loss(sr, hr)
+            if self.use_q:
+                sr,Q = self.model(lr, idx_scale)
+                loss = self.loss( Q, sr, hr)
+            else:
+                sr = self.model(lr, idx_scale)
+                loss = self.loss(sr, hr)
             if loss.item() < self.args.skip_threshold * self.error_last:
                 loss.backward()
                 self.optimizer.step()
@@ -92,8 +95,10 @@ class Trainer():
                         lr, hr = self.prepare([lr, hr])
                     else:
                         lr = self.prepare([lr])[0]
-
-                    sr = self.model(lr, idx_scale)
+                    if use_q:
+                        sr, Q = self.model(lr, idx_scale)
+                    else:
+                        sr= self.model(lr, idx_scale)
                     sr = utility.quantize(sr, self.args.rgb_range)
 
                     save_list = [sr]
@@ -130,7 +135,7 @@ class Trainer():
         def _prepare(tensor):
             if self.args.precision == 'half': tensor = tensor.half()
             return tensor.to(device)
-           
+
         return [_prepare(_l) for _l in l]
 
     def terminate(self):
@@ -140,4 +145,3 @@ class Trainer():
         else:
             epoch = self.scheduler.last_epoch + 1
             return epoch >= self.args.epochs
-

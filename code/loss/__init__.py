@@ -10,6 +10,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import time
 
 class Loss(nn.modules.loss._Loss):
     def __init__(self, args, ckp):
@@ -22,6 +23,8 @@ class Loss(nn.modules.loss._Loss):
         for loss in args.loss.split('+'):
             weight, loss_type = loss.split('*')
             if loss_type == 'MSE':
+                loss_function = nn.MSELoss()
+            elif loss_type == 'QMSE':
                 loss_function = nn.MSELoss()
             elif loss_type == 'L1':
                 loss_function = nn.L1Loss()
@@ -37,7 +40,7 @@ class Loss(nn.modules.loss._Loss):
                     args,
                     loss_type
                 )
-           
+
             self.loss.append({
                 'type': loss_type,
                 'weight': float(weight),
@@ -66,11 +69,50 @@ class Loss(nn.modules.loss._Loss):
 
         if args.load != '.': self.load(ckp.dir, cpu=args.cpu)
 
-    def forward(self, sr, hr):
+    #Q based MSE loss for the task
+    @classmethod
+    def QMSELoss(self, Q, sr, hr):
+        # print Q[1,0,10:15,10:15]
+        # print sr[1,0,10:15,10:15]
+        # print (Q.shape)
+        Q_ = torch.cat((Q,Q,Q),1).cuda()
+        Q_ = Q_.view(-1, Q.shape[2],Q.shape[3])
+        # print sr[0,0,10:20,10:20]
+        sr = sr - hr
+        sr = sr.view(sr.shape[0]*sr.shape[1],-1,1)
+        sr_t = torch.transpose(sr,1,2)
+        q_loss = torch.sum(torch.squeeze(torch.bmm(torch.bmm(sr_t,Q_), sr))) * 0.5
+        # torch.save(Q.squeeze(), 'test_tensor.pt')
+
+        #soft solution
+        Q = torch.bmm(Q[:,0,:,:], Q[:,0,:, :]) + 1e-4 *torch.eye(Q.shape[2],requires_grad=True).cuda().repeat(Q.shape[0],1,1)
+        # Q = torch.bmm(Q,Q)
+        # print Q[10,10:15,10:15]
+        for i in range(Q.shape[0]):
+            # time.sleep(5)
+            ##how to calculate a stable det
+            # print Q.shape
+            # np.linalg.cholesky(Q[i,:,:].cpu().detach().numpy())
+            U= torch.potrf(Q[i,:,:])
+            # e,_ = torch.symeig(Q[i,:,:])
+            # print e
+            # U, piv= torch.pstrf(Q[i,:,:].cpu())
+            # print U[10:15,10:15]
+            for j in range(Q.shape[0]):
+                q_loss  -= torch.log(torch.abs(U[j,j])) * 0.5            # q_loss -= torch.sum(torch.log(torch.abs(e))) * 0.5
+            # print torch.det(Q[i,:,:])
+            # q_loss -= torch.det(Q[i,:,:]) * 0.25
+        print q_loss / (hr.shape[0] * hr.shape[1] * hr.shape[2] * hr.shape[3])
+        return q_loss / (hr.shape[0] * hr.shape[1] * hr.shape[2] * hr.shape[3])
+
+    def forward(self, Q,sr, hr):
         losses = []
         for i, l in enumerate(self.loss):
             if l['function'] is not None:
-                loss = l['function'](sr, hr)
+                if l['type'] == 'QMSE':
+                    loss = self.QMSELoss(Q,sr,hr)
+                else:
+                    loss = l['function'](sr, hr)
                 effective_loss = l['weight'] * loss
                 losses.append(effective_loss)
                 self.log[-1, i] += effective_loss.item()
@@ -140,4 +182,3 @@ class Loss(nn.modules.loss._Loss):
         for l in self.loss_module:
             if hasattr(l, 'scheduler'):
                 for _ in range(len(self.log)): l.scheduler.step()
-

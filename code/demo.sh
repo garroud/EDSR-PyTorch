@@ -1,6 +1,7 @@
 # EDSR baseline model (x2)
 #python main.py --model EDSR --scale 2 --save EDSR_baseline_x2 --reset
-
+# EDSR training with q matrix (x2)
+python main.py --model EDSR_Q --scale 2 --save EDSR_Q_x2 --reset --pre_train ../experiment/model/EDSR_baseline_x2.pt --use_q=True --ext sep --window_size 3 --batch_size 16 --patch_size 32
 # EDSR baseline model (x3) - from EDSR baseline model (x2)
 #python main.py --model EDSR --scale 3 --save EDSR_baseline_x3 --reset --pre_train ../experiment/model/EDSR_baseline_x2.pt
 
@@ -36,9 +37,9 @@
 #python main.py --data_test DIV2K --ext img --n_val 100 --scale 4 --n_resblocks 32 --n_feats 256 --res_scale 0.1 --pre_train ../experiment/model/EDSR_x4.pt --test_only --self_ensemble
 
 # Test your own images
-python main.py --data_test Demo --scale 4 --pre_train ../experiment/model/EDSR_baseline_x4.pt --test_only --save_results
+# python main.py --data_test Demo --scale 4 --pre_train ../experiment/model/EDSR_baseline_x4.pt --test_only --save_results
 
-# Advanced - Test with JPEG images 
+# Advanced - Test with JPEG images
 #python main.py --model MDSR --data_test Demo --scale 2+3+4 --pre_train ../experiment/model/MDSR_baseline_jpeg.pt --test_only --save_results
 
 # Advanced - Training with adversarial loss
