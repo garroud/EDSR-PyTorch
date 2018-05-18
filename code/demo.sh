@@ -1,7 +1,7 @@
 # EDSR baseline model (x2)
 #python main.py --model EDSR --scale 2 --save EDSR_baseline_x2 --reset
 # EDSR training with q matrix (x2)
-python main.py --model EDSR_Q --scale 2 --save EDSR_Q_x2 --reset --pre_train ../experiment/model/EDSR_baseline_x2.pt --use_q=True --ext sep --window_size 3 --batch_size 16 --patch_size 32
+python main.py --model EDSR_Q --scale 2 --save EDSR_Q_x2 --reset --pre_train ../experiment/model/EDSR_baseline_x2.pt --use_q True --ext sep --window_size 4 --batch_size 16 --patch_size 48
 # EDSR baseline model (x3) - from EDSR baseline model (x2)
 #python main.py --model EDSR --scale 3 --save EDSR_baseline_x3 --reset --pre_train ../experiment/model/EDSR_baseline_x2.pt
 
